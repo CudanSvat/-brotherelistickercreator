@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Telegram Sticker Pack Creator</title>
+<script async src="https://telegram.org/js/telegram-widget.js?22"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 1em;
+    background: #f7f7f7;
+  }
+  .container {
+    max-width: 800px;
+    margin: auto;
+    background: white;
+    padding: 1em 2em 2em 2em;
+    border-radius: 8px;
+    box-shadow: 0 0 8px #ccc;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 1em;
+  }
+  .login-section {
+    text-align: center;
+    margin-bottom: 2em;
+    padding: 1em;
+    border: 1px solid #eee;
+    border-radius: 8px;
+  }
+  .user-info {
+    display: none;
+    margin-bottom: 1em;
+    padding: 1em;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+  .user-info img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 1em;
+    vertical-align: middle;
+  }
+  .upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 2em;
+    text-align: center;
+    margin-bottom: 1em;
+    background: #fafafa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .upload-area:hover, .upload-area.dragover {
+    border-color: #007bff;
+    background: #f0f7ff;
+  }
+  .upload-area p {
+    margin: 0;
+    color: #666;
+  }
+  .upload-area .icon {
+    font-size: 2em;
+    margin-bottom: 0.5em;
+  }
+  #image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 140px);
+    gap: 15px;
+    margin-bottom: 1em;
+  }
+  .image-preview {
+    position: relative;
+    border: 1px solid #ddd;
+    padding: 8px;
+    background: #fafafa;
+    border-radius: 6px;
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+  .image-preview:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .image-preview img {
+    max-width: 120px;
+    max-height: 120px;
+    display: block;
+    margin: 0 auto 5px auto;
+    border-radius: 4px;
+  }
+  .image-preview input[type="text"] {
+    width: 3.2em;
+    font-size: 1.4em;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .image-preview button {
+    margin-left: 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    padding: 0 6px;
+    font-size: 1.1em;
+    vertical-align: middle;
+  }
+  .pack-info {
+    margin-bottom: 1em;
+  }
+  .pack-info input, .pack-info textarea {
+    width: 100%;
+    font-size: 1.1em;
+    padding: 8px;
+    margin-bottom: 0.5em;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+  .pack-info textarea {
+    height: 80px;
+    resize: vertical;
+  }
+  #create-pack {
+    width: 100%;
+    font-size: 1.2em;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  #create-pack:hover {
+    background: #0056b3;
+  }
+  #create-pack:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+  .emoji-picker {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 1000;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 5px;
+  }
+  .emoji-picker button {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+  }
+  .emoji-picker button:hover {
+    background: #f0f0f0;
+  }
+  .emoji-picker button.used {
+    opacity: 0.5;
+    cursor: not-allowed;
+    position: relative;
+  }
+  .emoji-picker button.used:hover {
+    background: none;
+  }
+  .emoji-picker button.used::after {
+    content: "✓";
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 0.5em;
+    color: #666;
+  }
+  .progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+  }
+  .progress-content {
+    background: white;
+    padding: 2em;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .progress-bar {
+    width: 300px;
+    height: 20px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 1em 0;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: #007bff;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  .help-section {
+    margin-top: 2em;
+    padding-top: 1em;
+    border-top: 1px solid #eee;
+  }
+  .help-section h2 {
+    font-size: 1.2em;
+    margin-bottom: 0.5em;
+  }
+  .help-section ul {
+    margin: 0;
+    padding-left: 1.5em;
+    color: #666;
+  }
+  .sticker-limit-warning {
+    color: #dc3545;
+    font-size: 0.9em;
+    margin-top: 0.5em;
+    display: none;
+  }
+  .crop-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+  }
+  .crop-container {
+    background: white;
+    padding: 1em;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .crop-area {
+    position: relative;
+    margin: 1em 0;
+  }
+  .crop-area img {
+    max-width: 100%;
+    max-height: 70vh;
+  }
+  .crop-box {
+    position: absolute;
+    border: 2px solid #007bff;
+    background: rgba(0,123,255,0.1);
+    cursor: move;
+  }
+  .crop-controls {
+    margin-top: 1em;
+  }
+  .crop-controls button {
+    margin: 0 0.5em;
+    padding: 0.5em 1em;
+    border: none;
+    border-radius: 4px;
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+  }
+  .crop-controls button:hover {
+    background: #0056b3;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Telegram Sticker Pack Creator</h1>
+  
+  <div class="login-section">
+    <div id="user-info" class="user-info">
+      <img id="user-photo" src="" alt="Profile photo">
+      <span id="user-name"></span>
+      <button onclick="logout()" style="float: right;">Logout</button>
+    </div>
+    <div id="login-widget"></div>
+  </div>
+
+  <div id="main-content" style="display: none;">
+    <div class="upload-area" id="upload-area">
+      <div class="icon">📁</div>
+      <p>Drag and drop your images here<br>or click to select files</p>
+      <input type="file" id="image-upload" multiple accept="image/png,image/jpeg" style="display: none;" />
+    </div>
+
+    <div class="pack-info">
+      <input type="text" id="pack-name" placeholder="Sticker pack name" />
+      <textarea id="pack-description" placeholder="Sticker pack description (optional)"></textarea>
+      <div class="sticker-limit-warning" id="sticker-limit-warning">
+        Maximum 120 stickers allowed per pack
+      </div>
+    </div>
+
+    <div id="image-grid"></div>
+    <button id="create-pack">Create Sticker Pack</button>
+
+    <div class="help-section">
+      <h2>How to use:</h2>
+      <ul>
+        <li>Login with your Telegram account</li>
+        <li>Upload PNG or JPG images</li>
+        <li>Click on the emoji to change it</li>
+        <li>Add a name and description for your pack</li>
+        <li>Click "Create Sticker Pack" to create it</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="crop-overlay" id="crop-overlay">
+  <div class="crop-container">
+    <h3>Crop Image</h3>
+    <div class="crop-area" id="crop-area">
+      <img id="crop-image" src="" alt="Crop preview" />
+      <div class="crop-box" id="crop-box"></div>
+    </div>
+    <div class="crop-controls">
+      <button id="crop-apply">Apply</button>
+      <button id="crop-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="progress-overlay" id="progress-overlay">
+  <div class="progress-content">
+    <h3>Creating your sticker pack...</h3>
+    <div class="progress-bar">
+      <div class="progress-bar-fill" id="progress-bar-fill"></div>
+    </div>
+    <p id="progress-text">Processing images...</p>
+  </div>
+</div>
+
+<script src="image-processor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+<script>
+  // Bot credentials
+  const BOT_TOKEN = '7773039306:AAHdg6WN56lHeDpKN8os-LeOGP0q7779jJw';
+  const BOT_USERNAME = 'brotherelistickercreatorbot';
+  
+  let userData = null;
+  let stickers = [];
+  let currentPicker = null;
+  const MAX_STICKERS = 120;
+
+  const commonEmojis = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
+    '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
+    '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜',
+    '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏',
+    '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+    '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠',
+    '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨',
+    '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥'
+  ];
+
+  // Initialize Telegram Login Widget
+  window.onload = function() {
+    window.Telegram.Login.auth(
+      { bot_id: BOT_USERNAME, request_access: true },
+      function(data) {
+        if (data) {
+          userData = data;
+          showUserInfo(data);
+          document.getElementById('main-content').style.display = 'block';
+          document.getElementById('login-widget').style.display = 'none';
+        }
+      }
+    );
+  };
+
+  function showUserInfo(data) {
+    const userInfo = document.getElementById('user-info');
+    const userName = document.getElementById('user-name');
+    const userPhoto = document.getElementById('user-photo');
+    
+    userName.textContent = `${data.first_name} ${data.last_name || ''}`;
+    userPhoto.src = data.photo_url;
+    userInfo.style.display = 'block';
+  }
+
+  function logout() {
+    userData = null;
+    document.getElementById('user-info').style.display = 'none';
+    document.getElementById('login-widget').style.display = 'block';
+    document.getElementById('main-content').style.display = 'none';
+    stickers = [];
+    document.getElementById('image-grid').innerHTML = '';
+  }
+
+  function getUsedEmojis() {
+    return stickers.map(sticker => sticker.emojiInput.value);
+  }
+
+  function isEmojiUsed(emoji, currentEmoji) {
+    const usedEmojis = getUsedEmojis();
+    return usedEmojis.includes(emoji) && emoji !== currentEmoji;
+  }
+
+  function createEmojiPicker(callback, currentEmoji) {
+    const picker = document.createElement('div');
+    picker.className = 'emoji-picker';
+    
+    commonEmojis.forEach(emoji => {
+      const button = document.createElement('button');
+      button.textContent = emoji;
+      
+      if (isEmojiUsed(emoji, currentEmoji)) {
+        button.classList.add('used');
+        button.disabled = true;
+      } else {
+        button.addEventListener('click', () => {
+          if (isEmojiUsed(emoji, currentEmoji)) {
+            alert('This emoji is already used in another sticker. Please choose a different one.');
+            return;
+          }
+          callback(emoji);
+          picker.remove();
+        });
+      }
+      
+      picker.appendChild(button);
+    });
+
+    return picker;
+  }
+
+  function createImagePreview(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const div = document.createElement("div");
+      div.className = "image-preview";
+
+      const img = document.createElement("img");
+      img.src = e.target.result;
+      div.appendChild(img);
+
+      const emojiInput = document.createElement("input");
+      emojiInput.type = "text";
+      
+      // Find first unused emoji
+      const usedEmojis = getUsedEmojis();
+      let defaultEmoji = "😀";
+      for (const emoji of commonEmojis) {
+        if (!usedEmojis.includes(emoji)) {
+          defaultEmoji = emoji;
+          break;
+        }
+      }
+      emojiInput.value = defaultEmoji;
+      emojiInput.readOnly = true;
+      
+      emojiInput.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        if (currentPicker) {
+          currentPicker.remove();
+        }
+        currentPicker = createEmojiPicker((emoji) => {
+          if (isEmojiUsed(emoji, emojiInput.value)) {
+            alert('This emoji is already used in another sticker. Please choose a different one.');
+            return;
+          }
+          emojiInput.value = emoji;
+          currentPicker = null;
+        }, emojiInput.value);
+        const rect = emojiInput.getBoundingClientRect();
+        currentPicker.style.left = rect.left + 'px';
+        currentPicker.style.top = rect.bottom + 'px';
+        document.body.appendChild(currentPicker);
+      });
+      div.appendChild(emojiInput);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "✕";
+      removeBtn.title = "Remove sticker";
+      removeBtn.addEventListener("click", () => {
+        imageGrid.removeChild(div);
+        stickers = stickers.filter(s => s.element !== div);
+        updateStickerLimit();
+      });
+      div.appendChild(removeBtn);
+
+      imageGrid.appendChild(div);
+
+      stickers.push({ file, emojiInput, element: div });
+      updateStickerLimit();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleFiles(event) {
+    const files = Array.from(event.target.files);
+    const validFiles = files.filter(file => file.type === 'image/png' || file.type === 'image/jpeg');
+    
+    if (stickers.length + validFiles.length > MAX_STICKERS) {
+      alert(`You can only add ${MAX_STICKERS} stickers in total. Please remove some stickers first.`);
+      return;
+    }
+
+    // Process all files at once
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Create a fixed square crop from center
+          const size = Math.min(img.width, img.height);
+          const crop = {
+            x: (img.width - size) / 2,
+            y: (img.height - size) / 2,
+            width: size,
+            height: size
+          };
+          
+          // Process the image with the fixed crop
+          ImageProcessor.processImage(file, { crop }).then(processedImage => {
+            createImagePreview(new File([processedImage], file.name, { type: 'image/png' }));
+          });
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    imageUpload.value = "";
+  }
+
+  function updateStickerLimit() {
+    if (stickers.length >= MAX_STICKERS) {
+      stickerLimitWarning.style.display = 'block';
+      createPackBtn.disabled = true;
+    } else {
+      stickerLimitWarning.style.display = 'none';
+      createPackBtn.disabled = false;
+    }
+  }
+
+  // Drag and drop handlers
+  uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+  });
+
+  uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+  });
+
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    handleFiles({ target: { files: e.dataTransfer.files } });
+  });
+
+  uploadArea.addEventListener('click', () => {
+    imageUpload.click();
+  });
+
+  imageUpload.addEventListener("change", handleFiles);
+
+  createPackBtn.addEventListener("click", async () => {
+    if (!userData) {
+      alert("Please login with your Telegram account first.");
+      return;
+    }
+    if (stickers.length === 0) {
+      alert("Please add at least one sticker image.");
+      return;
+    }
+    if (!packNameInput.value.trim()) {
+      alert("Please enter a sticker pack name.");
+      return;
+    }
+
+    progressOverlay.style.display = 'flex';
+    progressBarFill.style.width = '0%';
+    progressText.textContent = 'Processing images...';
+
+    try {
+      // Create sticker pack through Telegram Bot API
+      const packName = packNameInput.value.trim();
+      const packDescription = packDescriptionInput.value.trim();
+      
+      // First, create the sticker set
+      const createSetResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/createNewStickerSet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userData.id,
+          name: packName,
+          title: packName,
+          emojis: stickers[0].emojiInput.value,
+          png_sticker: await getBase64FromFile(stickers[0].file)
+        })
+      });
+
+      if (!createSetResponse.ok) {
+        throw new Error('Failed to create sticker set');
+      }
+
+      // Add remaining stickers
+      for (let i = 1; i < stickers.length; i++) {
+        progressText.textContent = `Adding sticker ${i + 1} of ${stickers.length}...`;
+        progressBarFill.style.width = `${((i + 1) / stickers.length) * 100}%`;
+
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/addStickerToSet`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: userData.id,
+            name: packName,
+            emojis: stickers[i].emojiInput.value,
+            png_sticker: await getBase64FromFile(stickers[i].file)
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to add sticker');
+        }
+      }
+
+      progressOverlay.style.display = 'none';
+      alert(`Sticker pack created successfully! You can find it at t.me/addstickers/${packName}`);
+
+    } catch (error) {
+      console.error('Error creating sticker pack:', error);
+      progressOverlay.style.display = 'none';
+      alert('Sorry, there was an error creating your sticker pack. Please try again.');
+    }
+  });
+
+  // Helper function to convert File to base64
+  async function getBase64FromFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = reader.result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = error => reject(error);
+    });
+  }
+
+  // Close emoji picker when clicking outside
+  document.addEventListener('click', (ev) => {
+    if (currentPicker && !currentPicker.contains(ev.target)) {
+      currentPicker.remove();
+      currentPicker = null;
+    }
+  });
+</script>
+</body>
+</html>
