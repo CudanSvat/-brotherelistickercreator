@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Telegram Sticker Pack Creator</title>
 <script src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="brotherelistickercreatorbot" data-size="large" data-radius="8" data-request-access="write"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script src="image-processor.js"></script>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -349,21 +352,18 @@
   </div>
 </div>
 
-<script src="image-processor.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-
 <script>
   // Bot credentials
   const BOT_TOKEN = '7773039306:AAHdg6WN56lHeDpKN8os-LeOGP0q7779jJw';
   const BOT_USERNAME = 'brotherelistickercreatorbot';
   
+  // Global variables
   let userData = null;
   let stickers = [];
   let currentPicker = null;
   const MAX_STICKERS = 120;
 
-  // Get DOM elements
+  // DOM Elements
   const imageUpload = document.getElementById("image-upload");
   const imageGrid = document.getElementById("image-grid");
   const packNameInput = document.getElementById("pack-name");
@@ -386,33 +386,78 @@
     '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥'
   ];
 
-  // Initialize Telegram Login Widget
-  window.onload = function() {
-    window.Telegram.Login.auth(
-      { 
-        bot_id: BOT_USERNAME,
-        request_access: true,
-        lang: 'en'
-      },
-      function(data) {
-        if (data) {
-          userData = data;
-          showUserInfo(data);
-          document.getElementById('main-content').style.display = 'block';
-          document.getElementById('login-widget').style.display = 'none';
+  // Initialize everything after DOM is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Telegram Login Widget
+    if (window.Telegram && window.Telegram.Login) {
+      window.Telegram.Login.auth(
+        { 
+          bot_id: BOT_USERNAME,
+          request_access: true,
+          lang: 'en'
+        },
+        function(data) {
+          if (data) {
+            userData = data;
+            showUserInfo(data);
+            document.getElementById('main-content').style.display = 'block';
+            document.getElementById('login-widget').style.display = 'none';
+          }
         }
+      );
+    } else {
+      console.error('Telegram Login Widget not loaded');
+    }
+
+    // Initialize event listeners
+    if (uploadArea) {
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+      });
+
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
+
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        handleFiles({ target: { files: e.dataTransfer.files } });
+      });
+
+      uploadArea.addEventListener('click', () => {
+        imageUpload.click();
+      });
+    }
+
+    if (imageUpload) {
+      imageUpload.addEventListener("change", handleFiles);
+    }
+
+    if (createPackBtn) {
+      createPackBtn.addEventListener("click", createStickerPack);
+    }
+
+    // Close emoji picker when clicking outside
+    document.addEventListener('click', (ev) => {
+      if (currentPicker && !currentPicker.contains(ev.target)) {
+        currentPicker.remove();
+        currentPicker = null;
       }
-    );
-  };
+    });
+  });
 
   function showUserInfo(data) {
     const userInfo = document.getElementById('user-info');
     const userName = document.getElementById('user-name');
     const userPhoto = document.getElementById('user-photo');
     
-    userName.textContent = `${data.first_name} ${data.last_name || ''}`;
-    userPhoto.src = data.photo_url;
-    userInfo.style.display = 'block';
+    if (userInfo && userName && userPhoto) {
+      userName.textContent = `${data.first_name} ${data.last_name || ''}`;
+      userPhoto.src = data.photo_url;
+      userInfo.style.display = 'block';
+    }
   }
 
   function logout() {
@@ -571,29 +616,7 @@
     }
   }
 
-  // Drag and drop handlers
-  uploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.classList.add('dragover');
-  });
-
-  uploadArea.addEventListener('dragleave', () => {
-    uploadArea.classList.remove('dragover');
-  });
-
-  uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('dragover');
-    handleFiles({ target: { files: e.dataTransfer.files } });
-  });
-
-  uploadArea.addEventListener('click', () => {
-    imageUpload.click();
-  });
-
-  imageUpload.addEventListener("change", handleFiles);
-
-  createPackBtn.addEventListener("click", async () => {
+  async function createStickerPack() {
     if (!userData) {
       alert("Please login with your Telegram account first.");
       return;
@@ -612,7 +635,6 @@
     progressText.textContent = 'Processing images...';
 
     try {
-      // Create sticker pack through Telegram Bot API
       const packName = packNameInput.value.trim();
       const packDescription = packDescriptionInput.value.trim();
       
@@ -666,7 +688,7 @@
       progressOverlay.style.display = 'none';
       alert('Sorry, there was an error creating your sticker pack. Please try again.');
     }
-  });
+  }
 
   // Helper function to convert File to base64
   async function getBase64FromFile(file) {
@@ -680,14 +702,6 @@
       reader.onerror = error => reject(error);
     });
   }
-
-  // Close emoji picker when clicking outside
-  document.addEventListener('click', (ev) => {
-    if (currentPicker && !currentPicker.contains(ev.target)) {
-      currentPicker.remove();
-      currentPicker = null;
-    }
-  });
 </script>
 </body>
 </html>
